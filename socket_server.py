@@ -23,6 +23,35 @@ clients = {}
 
 
 
+async def cleanup_task():
+    while True:
+        try:
+            # Get list of active users from clients dictionary
+            active_users = list(clients.keys())
+            
+            # Call cleanup API
+            response = requests.post(
+                os.getenv('FLASK_SERVER_URL') + '/cleanup',
+                json={'active_users': active_users}
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                logger.info(f"Cleanup completed: {result['removed_count']} users removed")
+            else:
+                logger.error(f"Cleanup failed with status code: {response.status_code}")
+                
+        except Exception as e:
+            logger.error(f"Error during cleanup: {e}")
+            
+        # Wait for 10 seconds before next cleanup
+        await asyncio.sleep(10)
+
+
+
+
+
+
 async def echo(websocket):
 
 
@@ -81,6 +110,9 @@ async def echo(websocket):
 
 async def main():
     try:
+        # Start the cleanup task
+        cleanup_loop = asyncio.create_task(cleanup_task())
+        
         async with websockets.serve(echo, '0.0.0.0', 8765) as server:
             logger.info("WebSocket server started on ws://0.0.0.0:8765")
             await server.serve_forever()
