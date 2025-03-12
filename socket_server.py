@@ -68,9 +68,9 @@ async def echo(websocket):
             join_message = f"{username} has joined the chat"
             logger.info(join_message)
             for client in clients.values():
-                await client.send(json.dumps({"type": "join", "sender": 'SYSTEM', "message": join_message}))
+                await client.send(json.dumps({"code": 100, "sender": 'SYSTEM', "message": join_message, "active_users" : list(clients.keys())}))
         else:
-            await websocket.send(json.dumps({"type": "error", "sender": 'SYSTEM', "message": "Corrupted Connection, Closing..."}))
+            await websocket.send(json.dumps({"code": 300, "sender": 'SYSTEM', "message": "Corrupted Connection, Closing..."}, ensure_ascii=False))
             await websocket.close()
 
 
@@ -84,7 +84,7 @@ async def echo(websocket):
                 broadcast_message = f"{username}: {message}"
                 logger.info(broadcast_message)
                 for client in clients.values():
-                    await client.send(json.dumps({"type": "message", "sender": username, "message": message}))
+                    await client.send(json.dumps({"code": 200, "sender": username, "message": message}))
         except websockets.exceptions.ConnectionClosed:
             logger.info(f"Client {username} connection closed")
             requests.post(os.getenv('FLASK_SERVER_URL') + '/logout', json={'username': username})
@@ -102,7 +102,7 @@ async def echo(websocket):
             leave_message = f"SYSTEM: {username} has left the chat"
             logger.info(leave_message)
             for client in clients.values():
-                await client.send(leave_message)
+                await client.send(json.dumps({"code": 100, "sender": 'SYSTEM', "message": leave_message, "active_users" : list(clients.keys())}))
 
 
 
